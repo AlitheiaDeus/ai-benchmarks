@@ -1,0 +1,76 @@
+<suite name="Math and Logic Benchmark Suite" version="1.0">
+
+<task id="1" category="Number Theory &amp; Modular Arithmetic">
+<criteria>Correctly applies Euler's totient theorem and modular reduction to compute the exact last three digits (mod 1000).</criteria>
+<prompt>
+Find the last three digits of the tetration tower 7^(7^(7^7)) (i.e. 7^(7^(7^7)) mod 1000).
+
+Show your complete mathematical derivation step by step:
+1. Decompose the modulus using the Chinese Remainder Theorem or Euler's Totient Theorem φ(n).
+2. Reduce each exponent tower systematically down to base cases.
+3. State the final 3-digit number clearly.
+</prompt>
+</task>
+
+<task id="2" category="Combinatorics &amp; Probability">
+<criteria>Correctly applies the derangement formula !n and binomial coefficients to compute the exact probability as an irreducible fraction.</criteria>
+<prompt>
+Suppose 8 distinguishable letters are placed uniformly at random into 8 corresponding addressed envelopes, with exactly one letter per envelope.
+
+What is the exact probability that EXACTLY 3 letters end up in their correct envelopes?
+
+Show your complete derivation:
+1. The number of ways to choose which 3 letters are correct.
+2. The number of sub-permutations (derangements) for the remaining 5 letters.
+3. The total number of permutations of 8 letters.
+4. Simplify the final fraction to lowest terms (p/q).
+</prompt>
+</task>
+
+<task id="3" category="Formal Logic &amp; Truth Deduction">
+<criteria>Logically eliminates all inconsistent cases to deduce the single unique assignment for Knight, Knave, and Spy.</criteria>
+<prompt>
+On a logic island, every inhabitant is either a Knight (always tells the truth), a Knave (always lies), or a Spy (can lie or tell the truth).
+
+Three individuals (A, B, and C) are standing before you. You know that exactly one is a Knight, one is a Knave, and one is a Spy. They make the following statements:
+
+- A says: "I am a Knave, or B is a Knight."
+- B says: "C is a Spy, and A is not a Knight."
+- C says: "At least one of us is a Knave."
+
+Deduce the true identity of A, B, and C. Provide a step-by-step proof analyzing each person's statement and eliminating all impossible identity assignments.
+</prompt>
+</task>
+
+<task id="4" category="Game Theory &amp; Invariants">
+<criteria>Identifies the periodic kernel / losing positions (P-positions mod 8) and determines the winning player with optimal play.</criteria>
+<prompt>
+Two players, Alice and Bob, play a turn-based game starting with a single pile of 1,000 stones.
+
+Rules:
+- On each turn, a player may remove either 1, 3, 4, or 7 stones from the pile.
+- Players alternate turns.
+- The player who takes the last stone wins (normal play convention).
+
+If Alice moves first and both players play with optimal strategy:
+1. Determine who has the winning strategy (Alice or Bob).
+2. Identify the repeating modular pattern / invariant of winning (N) and losing (P) positions.
+3. If Alice wins, what is her unique optimal opening move?
+</prompt>
+</task>
+
+<task id="5" category="Algebra &amp; Functional Equations">
+<criteria>Solves D'Alembert's functional equation variant to derive the exact closed form f(x) = 3 sin(x).</criteria>
+<prompt>
+Let f: ℝ → ℝ be a differentiable function satisfying the functional equation:
+f(x + y) + f(x - y) = 2 * f(x) * cos(y)
+
+for all real numbers x and y, given the initial conditions:
+f(0) = 0
+f'(0) = 3
+
+Find the explicit closed-form formula for f(x) for all real x. Show complete justification, including verifying your solution against the functional equation.
+</prompt>
+</task>
+
+</suite>

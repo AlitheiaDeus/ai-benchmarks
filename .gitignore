@@ -1,0 +1,26 @@
+﻿# Exclude uncensored & taboo evaluation suites
+suite_uncensor_me.txt
+suite_taboo*.txt
+*uncensor*
+*taboo*
+
+# Exclude evaluation reports, raw runs, summaries, and logs
+benchmarks/
+legacy/
+benchmark_summary.md
+*.tags
+
+# Python bytecode & environments
+__pycache__/
+*.py[cod]
+*.class
+.venv/
+venv/
+.env
+
+# Editor & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

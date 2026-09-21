@@ -1,0 +1,100 @@
+<suite name="Prose and Stylistic Depth Benchmark Suite" version="1.0">
+
+<task id="1" category="Authorial Voice &amp; Atmosphere (Cormac McCarthy / Southern Gothic)">
+<criteria>Captures rhythmic polysyndeton, stark naturalism, biblical cadence, and visceral tactile weight without modern exposition or moralizing AI clichés.</criteria>
+<prompt>
+Write a 600-word excerpt in the style of Cormac McCarthy (Southern Gothic / apocalyptic realism).
+
+Scenario: An old scavenger crosses an arid, sun-baked alkali flat at twilight to inspect a rusted, overturned cargo container that washed ashore or crashed decades ago.
+
+Requirements:
+- Emphasize stark, unsparing sensory textures (salt, bone, rust, heat, copper, silence).
+- Use sparse punctuation and rhythmic polysyndeton ("and... and...").
+- Do NOT use standard AI cliché words: "tapestry", "shattered silence", "testament to", "delve", "symphony".
+- Maintain a somber, detached authorial voice.
+</prompt>
+</task>
+
+<task id="2" category="Style Mimicry &amp; Negative Constraints (Hardboiled Noir)">
+<criteria>Delivers a gritty, world-weary noir detective scene while strictly obeying the forbidden words list.</criteria>
+<prompt>
+Write a 500-word hardboiled noir scene set in a greasy noodle stall in a rainy industrial shipping district. A cynical fixer is waiting for a contact who is twenty minutes late with a crucial ledger.
+
+Strict Negative Constraints:
+You must NOT use ANY of the following words anywhere in your response:
+1. "neon"
+2. "tapestry"
+3. "dance" (or "danced", "dancing")
+4. "shadows" (or "shadow")
+5. "testament"
+6. "delve"
+7. "beacon"
+8. "symphony"
+9. "labyrinth"
+
+Focus on realistic, grounded sensory details, cynical interior monologue, and heavy atmospheric pacing.
+</prompt>
+</task>
+
+<task id="3" category="Show-Do-Not-Tell Subtext (Escalating Panic Attack)">
+<criteria>Communicates an acute panic attack during a mundane social interaction solely through physiological micro-actions and sensory distortion without naming emotional states.</criteria>
+<prompt>
+Write a 450-word scene where a character experiences a severe, escalating panic attack while sitting across from their family during a quiet Sunday roast dinner.
+
+Strict Lexical Constraints:
+You are strictly forbidden from using any of the following words or their derivatives:
+- "panic"
+- "anxiety" / "anxious"
+- "fear" / "afraid"
+- "scared"
+- "breath" / "breathe" / "breathing" / "breathless"
+- "heart"
+- "chest"
+- "pulse"
+- "terror"
+
+Convey the overwhelming distress purely through distorted sensory perception (light, sound, cutlery against porcelain, visual focus), involuntary muscle responses, and the suffocating contrast with the family's cheerful, oblivious conversation.
+</prompt>
+</task>
+
+<task id="4" category="Dialogue Mastery &amp; Subtext (Unspoken Betrayal)">
+<criteria>Demonstrates sophisticated subtext where two characters convey mutual awareness of financial embezzlement through double entendre and physical pacing without making explicit accusations.</criteria>
+<prompt>
+Write a 500-word dialogue-heavy scene between two longtime co-founders sharing a drink in an empty corner office late at night after a company audit.
+
+Context: Partner A discovered hours earlier that Partner B has been quietly embezzling millions through offshore vendor shell companies. Partner B does not know for sure if Partner A found out, but begins to realize it mid-conversation through Partner A's pointed questions.
+
+Constraints:
+- Neither character may directly mention: "money", "theft", "stole", "steal", "audit", "police", "jail", "fraud", "account", "ledger", "bank", or "embezzle".
+- The tension must be built purely through veiled remarks, shared memories turned sour, body language, and double meanings.
+</prompt>
+</task>
+
+<task id="5" category="Atmospheric Dread &amp; Original Imagery (Cosmic Horror)">
+<criteria>Builds genuine dread and surreal unease through precise material physics and psychological alienation, avoiding generic Lovecraftian tropes.</criteria>
+<prompt>
+Write a 550-word atmospheric horror excerpt.
+
+Scenario: A senior petrologist inside a high-security subterranean geological repository examines a deep-mantle core drill sample extracted from seven miles below the Pacific seabed. Under polarized light and electron microscopy, the mineral structure displays an impossible, crystalline geometry that slowly alters when unobserved.
+
+Strict Rules:
+- Evoke deep existential dread through technical precision, optical anomalies, and silence.
+- Do NOT use generic pulp tropes or tentacles.
+- Do NOT use the words: "eldritch", "madness", "insanity", "unspeakable", "indescribable", "sanity", "abyss".
+</prompt>
+</task>
+
+<task id="6" category="Historical Realism &amp; Sensory Immersion (WWI Trench Life)">
+<criteria>Captures authentic, unromanticized historical grit through tactile mechanical detail and profound human fatigue.</criteria>
+<prompt>
+Write a 500-word historical realism scene set in a waterlogged trench during the Battle of the Somme, November 1916.
+
+Focus on a single private who is crouching under a dripping corrugated tin sheet during a temporary lull in bombardment, trying to perform two simple mundane tasks: light a damp match for his last cigarette and bind a ruined boot with telephone wire.
+
+Requirements:
+- Emphasize the physical reality: the specific smell of wet wool and cordite, the weight of clay mud, freezing grease, numbness in fingers, and the ringing silence in the ears.
+- Avoid melodramatic heroic speeches or patriotic monologues; keep it grounded in visceral survival and grinding exhaustion.
+</prompt>
+</task>
+
+</suite>
