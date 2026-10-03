@@ -1,4 +1,4 @@
-﻿# Exclude uncensored & taboo evaluation suites
+# Exclude uncensored & taboo evaluation suites
 suite_uncensor_me.txt
 suite_taboo*.txt
 *uncensor*
@@ -24,3 +24,8 @@ venv/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Agent instructions & local configs
+AGENTS.md
+GEMINI.md
+

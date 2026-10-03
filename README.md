@@ -30,10 +30,12 @@ A high-precision, tag-delimited multi-model benchmarking engine for local LLMs r
 ## Quick Start
 
 ### 1. Requirements
-- Python 3.10+
+- Python 3.10+ (Recommended Conda env: `textrpg`)
 - LM Studio running local server (`http://localhost:1234`)
 
 ```bash
+conda activate textrpg
+# Or in a fresh environment:
 pip install requests textual
 ```
 
