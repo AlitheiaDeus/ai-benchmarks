@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 LM Studio Automated Benchmark Suite v2.0
 ========================================
@@ -332,7 +332,7 @@ def generate_markdown_report(
     ]
 
     for r in results:
-        status_icon = "âœ… Success" if r["status"] == "SUCCESS" else "âŒ Failed"
+        status_icon = "✅ Success" if r["status"] == "SUCCESS" else "❌ Failed"
         total_tokens = r["usage"].get("total_tokens", "-") if r["usage"] else "-"
         lines.append(
             f"| {r['index']} | {r['category']} | {status_icon} | {r['duration']:.2f} | "
@@ -364,7 +364,7 @@ def generate_markdown_report(
         # Thinking Process (Collapsible)
         if r["thinking"]:
             lines.append("<details open>")
-            lines.append(f"<summary><b>ðŸ’­ Model Thinking Process ({len(r['thinking']):,} chars)</b></summary>")
+            lines.append(f"<summary><b>💭 Model Thinking Process ({len(r['thinking']):,} chars)</b></summary>")
             lines.append("")
             lines.append("```text")
             lines.append(r["thinking"])
@@ -377,7 +377,7 @@ def generate_markdown_report(
             lines.append("")
 
         # Model Response
-        lines.append("#### ðŸ’¬ Model Final Response:")
+        lines.append("#### 💬 Model Final Response:")
         lines.append("")
         lines.append(r["response"])
         lines.append("")
@@ -559,7 +559,7 @@ def run_batch_benchmark(
             )
             model_task_results.append(task_res)
 
-            status_icon = "âœ“" if task_res["status"] == "SUCCESS" else "âœ—"
+            status_icon = "✓" if task_res["status"] == "SUCCESS" else "✗"
             print(
                 f"    {status_icon} Completed in {task_res['duration']:.2f}s "
                 f"| Thinking: {len(task_res['thinking']):,} chars "
@@ -585,7 +585,7 @@ def run_batch_benchmark(
             max_tokens=max_tokens,
             output_dir=output_dir
         )
-        print(f"\n[âœ“] Saved Model Report: {', '.join(saved)}")
+        print(f"\n[✓] Saved Model Report: {', '.join(saved)}")
 
     total_batch_time = time.time() - batch_start_time
 
