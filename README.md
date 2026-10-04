@@ -30,6 +30,11 @@ A high-precision, tag-delimited multi-model benchmarking engine for local LLMs r
    - **Filesystem & Hashing**: Recursive deduplication with chunked SHA-256 and space recovery reporting.
    - **CLI Data Wrangling**: Standalone CLI flattening arbitrary nested JSON to filtered, projected CSVs.
 
+4. **`suite_enterprise_wrangling.txt` — Enterprise Legacy Data Wrangling (JavaScript / Node.js)**
+   - **SAP Spool Parsing**: Fixed-width positional slicing, wrapped continuation row stitching, SAP trailing minus parsing (`1,250.00-`), and pagination banner rejection.
+   - **Spreadsheet Unpivoter**: Normalizing multi-tier grouped headers (`Region -> Metric -> Actual/Target`) and forward-filling merged empty cells into flat database records.
+   - **EDI / X12 850 Parser**: Dynamic delimiter discovery and state-machine loop parsing of ANSI X12 purchase orders into nested JSON.
+
 ---
 
 ## Quick Start

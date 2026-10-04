@@ -1,0 +1,194 @@
+<suite name="Enterprise Legacy Data Wrangling (JavaScript/Node.js)" version="1.0">
+
+<task id="1" category="SAP &amp; Mainframe Spool Parsing (Fixed-Width &amp; Wrapped Rows)">
+<criteria>Parses fixed-width monospaced SAP spool reports by dynamically calculating column bounds from separator lines, stitches multi-line wrapped text rows, normalizes SAP trailing minus signs, filters pagination banners, and outputs clean JSON.</criteria>
+<prompt>
+Write a clean, production-grade vanilla JavaScript (Node.js ESM) parser for legacy SAP spool / print dumps.
+
+Context:
+In enterprise SAP systems where scripting and RFC access are blocked, reports are exported as monospaced spool text files. These files feature repeating page headers, form feeds, decorative box borders, multi-line wrapped descriptions, and SAP-style trailing minus signs for negative values.
+
+Sample Raw Input:
+```text
+========================================================================================================
+Report: ZFI_AP_AGING          Company Code: 1000 - ACME Corp             Run Date: 12.10.2026 04:15:22
+Page: 0001 / 0014             Currency: USD                              User: BATCH_JOBS
+========================================================================================================
+| Vendor No  | Doc Number | Doc Date   | Material Description                 | Quantity  | Net Amount     |
++------------+------------+------------+--------------------------------------+-----------+----------------+
+| 0001048291 | 4500019283 | 10.10.2024 | Heavy Industrial Flange M24-3.0      |     1,500 |      45,000.00 |
+|            |            |            | Grade 10.9 Zinc Plated High-Tensile  |           |                |
+| 0001048291 | 4500019284 | 11.10.2024 | O-Ring Nitrile Seal 25mm             |       75- |         712.50-|
++------------+------------+------------+--------------------------------------+-----------+----------------+
+* Subtotal Vendor 0001048291                                                  |     1,425 |      44,287.50 |
+\x0c
+========================================================================================================
+Report: ZFI_AP_AGING          Company Code: 1000 - ACME Corp             Run Date: 12.10.2026 04:15:22
+Page: 0002 / 0014             Currency: USD                              User: BATCH_JOBS
+========================================================================================================
+| Vendor No  | Doc Number | Doc Date   | Material Description                 | Quantity  | Net Amount     |
++------------+------------+------------+--------------------------------------+-----------+----------------+
+| 0002081944 | 4500020115 | 12.10.2024 | Stainless Steel Hex Nut DIN 934      |    10,000 |       2,400.00 |
++------------+------------+------------+--------------------------------------+-----------+----------------+
+*** Grand Total                                                               |    11,425 |      46,687.50 |
+```
+
+Specifications:
+1. Dynamic Column Bounds:
+   - Determine column boundaries by analyzing the header row or separator lines (`+------------+...` or `| Vendor No |...`).
+   - Do NOT use hardcoded fixed integer indices—compute them dynamically from the table header structure.
+2. Continuation / Wrapped Row Merging:
+   - When a row has a blank `Vendor No` and `Doc Number`, but contains text in `Material Description`, it is a continuation of the previous record.
+   - Append continuation lines to the parent item's `materialDescription` joined with a single space.
+3. Numeric Normalization (SAP Trailing Minus):
+   - Handle SAP negative numbers formatted with a trailing minus (e.g., `"75-"` -> `-75`, `"712.50-"` -> `-712.50`).
+   - Strip thousands commas and parse into native JavaScript `Number`.
+4. Noise Rejection:
+   - Filter out page headers, metadata lines (`Report:`, `Page:`, `Company Code:`), separator borders (`===`, `+---`), form-feeds (`\x0c`, `\f`), and subtotal/grand total lines (lines starting with `*` or `***`).
+5. Output Contract:
+   - Export function `parseSapSpool(rawText)` that returns an array of record objects:
+     ```javascript
+     [
+       {
+         vendorNo: "0001048291",
+         docNumber: "4500019283",
+         docDate: "10.10.2024",
+         materialDescription: "Heavy Industrial Flange M24-3.0 Grade 10.9 Zinc Plated High-Tensile",
+         quantity: 1500,
+         netAmount: 45000.00
+       },
+       ...
+     ]
+     ```
+6. Implement clean vanilla Node.js code with a complete runnable demo using the sample text.
+</prompt>
+</task>
+
+<task id="2" category="Hierarchical Spreadsheet Normalization (Multi-Level Headers &amp; Forward-Fill)">
+<criteria>Unpivots complex tabular arrays with multi-tier merged column headers (Region -&gt; Quarter -&gt; Metric) and forward-fills sparsely populated merged dimension cells into normalized, database-ready flat records.</criteria>
+<prompt>
+Write a clean, vanilla JavaScript (Node.js ESM) data-transformation utility to unpivot and normalize "spreadsheet from hell" extracts.
+
+Context:
+Business users frequently create reports with multi-level grouped column headers and merged dimensional cells (where a blank cell implicitly means "same value as the cell above it"). These wide, human-friendly pivot sheets must be melted and normalized into flat records before loading into databases or analytical pipelines.
+
+Sample Raw Input (CSV/Grid Representation):
+```text
+Region, , ,North, ,South, 
+Year,Quarter,Metric,Target,Actual,Target,Actual
+2025,Q1,Revenue,500000,520000,300000,290000
+ , ,Expenses,350000,340000,210000,225000
+ ,Q2,Revenue,550000,580000,320000,315000
+ , ,Expenses,370000,365000,220000,230000
+2026,Q1,Revenue,600000,610000,350000,360000
+ , ,Expenses,400000,390000,240000,235000
+```
+
+Specifications:
+1. Multi-Tier Header Forward-Fill &amp; Resolution:
+   - Rows 0 and 1 represent a 2-level hierarchical column header.
+   - In Row 0, `"North"` governs subsequent empty header columns until `"South"` is encountered (forward-fill header groups).
+   - Combine the parent group with the child column name (e.g. `Region: "North", Type: "Target"`).
+2. Sparse Row Forward-Fill (Merged Cells):
+   - Dimensional columns on the left (`Year`, `Quarter`) contain blank cells when values repeat.
+   - Forward-fill empty values down the rows so that `"2025"` and `"Q1"` persist across subsequent rows until a new value appears.
+3. Wide-to-Long (Unpivot / Melt):
+   - Transform wide metric columns into normalized flat rows.
+   - Cast numeric metrics to native JavaScript numbers.
+4. Output Contract:
+   - Export function `unpivotSpreadsheet(rawCsvOrMatrix)` returning an array of objects:
+     ```javascript
+     [
+       { year: 2025, quarter: "Q1", metric: "Revenue", region: "North", type: "Target", value: 500000 },
+       { year: 2025, quarter: "Q1", metric: "Revenue", region: "North", type: "Actual", value: 520000 },
+       { year: 2025, quarter: "Q1", metric: "Revenue", region: "South", type: "Target", value: 300000 },
+       { year: 2025, quarter: "Q1", metric: "Revenue", region: "South", type: "Actual", value: 290000 },
+       { year: 2025, quarter: "Q1", metric: "Expenses", region: "North", type: "Target", value: 350000 },
+       ...
+     ]
+     ```
+5. Include robust edge-case handling (trims whitespace, ignores trailing empty rows) and provide a runnable demo in vanilla JavaScript.
+</prompt>
+</task>
+
+<task id="3" category="EDI / X12 Electronic Data Interchange (Loop Hierarchy &amp; State Machine)">
+<criteria>Implements a robust state-machine parser in vanilla JavaScript to parse X12 / EDI transaction loops (ISA, GS, ST, BEG, PO1, PID, CTT, SE) into a structured nested JSON purchase order document.</criteria>
+<prompt>
+Write a clean, dependency-free vanilla JavaScript (Node.js ESM) parser that translates raw ANSI X12 850 (Purchase Order) EDI streams into structured nested JSON.
+
+Context:
+EDI (Electronic Data Interchange) is the backbone of global supply chain and logistics. An EDI message is an undelimited or single-line stream of segments separated by segment terminators, composed of elements separated by element delimiters, organized into stateful repeating loops.
+
+Sample Raw X12 Stream:
+```text
+ISA*00*          *00*          *ZZ*ACMEBUYER      *ZZ*SUPPLIERGLOBAL *261012*1430*U*00401*000000101*0*P*>~
+GS*PO*ACMEBUYER*SUPPLIERGLOBAL*20261012*1430*101*X*004010~
+ST*850*0001~
+BEG*00*NE*PO-994821**20261012~
+N1*BY*ACME Corp Purchasing*92*112233~
+N3*100 Industrial Parkway~
+N4*Detroit*MI*48201~
+PO1*1*100*EA*14.50**VN*SKU-9921-A~
+PID*F****Industrial Ball Bearing 6205-2RS~
+PO1*2*500*FT*2.25**VN*SKU-4410-C~
+PID*F****Reinforced High-Pressure Hose 1/2in~
+CTT*2*600~
+SE*11*0001~
+GE*1*101~
+IEA*1*000000101~
+```
+
+Specifications:
+1. Dynamic Delimiter Extraction:
+   - In standard X12, the 4th character of the `ISA` header defines the element separator (`*`).
+   - The character at index 105 (immediately following the control version) defines the segment terminator (`~` or `\n`).
+   - Do NOT assume fixed delimiters—detect them dynamically from the `ISA` header.
+2. Stateful Loop Parsing:
+   - `BEG`: Extract PO Number (`BEG03` -> `"PO-994821"`) and Date (`BEG05` -> `"20261012"`).
+   - `N1 / N3 / N4`: Extract Buyer entity (`N102` Name, `N301` Address, `N401` City, `N402` State, `N403` Zip).
+   - `PO1` (Repeating Line Item Loop):
+     - Line Number (`PO101`, integer)
+     - Quantity (`PO102`, float/int)
+     - Unit of Measure (`PO103`)
+     - Unit Price (`PO104`, float)
+     - Vendor Part Number (`PO107`)
+   - `PID` (Nested Child of preceding `PO1`):
+     - Description (`PID05`)
+   - `CTT`: Transaction totals (`CTT01` line count check).
+3. Computed Fields:
+   - Calculate line totals (`quantity * unitPrice`) and overall `orderTotalAmount`.
+4. Output Contract:
+   - Export function `parseX12PurchaseOrder(ediText)` returning a clean nested JavaScript object:
+     ```javascript
+     {
+       poNumber: "PO-994821",
+       poDate: "20261012",
+       buyer: {
+         name: "ACME Corp Purchasing",
+         address: "100 Industrial Parkway",
+         city: "Detroit",
+         state: "MI",
+         zip: "48201"
+       },
+       items: [
+         {
+           lineNumber: 1,
+           sku: "SKU-9921-A",
+           description: "Industrial Ball Bearing 6205-2RS",
+           quantity: 100,
+           unitOfMeasure: "EA",
+           unitPrice: 14.50,
+           lineTotal: 1450.00
+         },
+         ...
+       ],
+       lineItemCount: 2,
+       totalQuantity: 600,
+       orderTotalAmount: 2575.00
+     }
+     ```
+5. Implement clean vanilla Node.js code with zero external dependencies and include a self-testing execution demo.
+</prompt>
+</task>
+
+</suite>
