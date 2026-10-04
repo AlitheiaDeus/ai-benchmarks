@@ -1,0 +1,68 @@
+<suite name="Python Scripting Benchmark Suite" version="1.0">
+
+<task id="1" category="Log Parsing &amp; Regex Data Extraction">
+<criteria>Uses standard library (re, collections.Counter, json) to reliably parse web access logs, extract key metrics, handle malformed entries, and output structured JSON.</criteria>
+<prompt>
+Write a clean, self-contained Python script to parse and aggregate web server access logs.
+
+Specifications:
+1. Input: A multi-line string or log file containing entries in Combined Log Format:
+   `192.168.1.10 - - [10/Oct/2026:13:55:36 +0000] "GET /api/v1/users HTTP/1.1" 200 2326 "-" "Mozilla/5.0"`
+2. Regex Extraction: Extract Client IP, Timestamp, HTTP Method, Request Path, Status Code (integer), and Response Bytes (integer, treating "-" as 0).
+3. Aggregation Metrics:
+   - `total_requests`: Total valid requests parsed.
+   - `invalid_lines`: Count of malformed/unparseable lines (script must skip without crashing).
+   - `top_ips`: Top 3 most frequent client IP addresses with hit counts.
+   - `status_distribution`: Counts grouped by HTTP status family (2xx, 3xx, 4xx, 5xx).
+   - `total_bandwidth_bytes`: Sum of all response payload sizes.
+4. Output: Return or print the final summary as formatted JSON.
+5. Provide a working example with sample log lines demonstrating normal lines and at least one malformed line.
+</prompt>
+</task>
+
+<task id="2" category="Filesystem Automation &amp; Hashing">
+<criteria>Uses pathlib and hashlib to recursively find duplicate files efficiently (filtering by file size first, then chunked SHA-256 hashing) and reports reclaimable space.</criteria>
+<prompt>
+Write a production-quality Python script that scans a directory recursively to detect duplicate files.
+
+Specifications:
+1. Efficiency Requirements:
+   - Group files by size (`os.path.getsize` or `Path.stat().st_size`) first. Only compute hashes for files that share identical sizes with at least one other file.
+   - For candidate duplicates, compute SHA-256 in 64 KB chunks (`iter(lambda: f.read(65536), b'')`) to prevent high memory usage on large files.
+2. Deduplication Logic:
+   - Identify duplicates having identical SHA-256 digests.
+   - For each group of duplicates, preserve the oldest file (earliest creation/modification time) as the canonical original.
+   - Calculate `reclaimable_bytes`: total space that would be freed if all duplicate copies were deleted.
+3. Output:
+   - Return or print a structured JSON report listing:
+     - `scanned_files_count`
+     - `duplicate_groups_count`
+     - `reclaimable_bytes` (and human-readable format e.g. MB/GB)
+     - `duplicates`: mapping of hash -> list of duplicate paths.
+4. Safe CLI: Include a `--dry-run` flag via `argparse` showing what would be deleted without touching any files.
+</prompt>
+</task>
+
+<task id="3" category="CLI Data Wrangling &amp; Streams">
+<criteria>Builds a robust command-line tool using argparse, json, and csv to recursively flatten nested JSON objects into dot-notated CSV rows with optional filtering and field projection.</criteria>
+<prompt>
+Write a robust, standalone Python CLI utility that converts nested JSON records into a flattened CSV table.
+
+Specifications:
+1. Recursive Flattening:
+   - Implement a function `flatten_dict(d, parent_key='', sep='.')` that flattens arbitrary nested dictionaries.
+   - Example: `{"user": {"name": "Alice", "geo": {"lat": 10.5}}}` -> `{"user.name": "Alice", "user.geo.lat": 10.5}`.
+   - If a value is a list of primitives, join with `";"`.
+2. CLI Arguments (`argparse`):
+   - `--input` / `-i`: Path to input JSON file (or reads from `sys.stdin` if omitted).
+   - `--output` / `-o`: Path to output CSV file (or writes to `sys.stdout` if omitted).
+   - `--filter`: Optional string in `key=value` format (e.g. `status=active`) to filter rows before export.
+   - `--fields`: Optional comma-separated list of columns to include in the output CSV. If omitted, include all discovered keys.
+3. Robustness:
+   - Handle missing keys across heterogeneous records (fill missing values with empty string `""`).
+   - Gracefully handle file not found and invalid JSON errors with meaningful error messages and non-zero exit codes.
+4. Provide a runnable `__main__` entrypoint with clear docstrings and usage examples.
+</prompt>
+</task>
+
+</suite>

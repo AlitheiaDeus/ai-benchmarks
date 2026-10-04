@@ -25,6 +25,11 @@ A high-precision, tag-delimited multi-model benchmarking engine for local LLMs r
    - **Authorial Voice**: Cormac McCarthy polysyndeton, rhythmic sensory weight, anti-cliché filters.
    - **Negative Constraints**: Hardboiled noir detective scenes with strict forbidden word lists (no delve, tapestry, neon, shadows).
 
+3. **`suite_python_scripting.txt` — Python Automation & Scripting**
+   - **Log Parsing & Regex**: Web access log parsing, metric aggregation, and structured JSON output.
+   - **Filesystem & Hashing**: Recursive deduplication with chunked SHA-256 and space recovery reporting.
+   - **CLI Data Wrangling**: Standalone CLI flattening arbitrary nested JSON to filtered, projected CSVs.
+
 ---
 
 ## Quick Start
