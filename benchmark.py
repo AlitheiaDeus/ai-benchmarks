@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """
-LM Studio Automated Benchmark Suite v2.0
-========================================
-Tag-Delimited Multi-Model Benchmark Engine for LM Studio.
+LM Studio Native Automated Benchmark Suite v3.0
+================================================
+Tag-Delimited Multi-Model Benchmark Engine powered by LM Studio Native REST API (/api/v1/chat).
 
 Key Features:
+- Native LM Studio REST integration: POST /api/v1/chat with stateless execution (store: false)
+- First-class native reasoning control: --reasoning {off,low,medium,high,on} / --no-thinking
+- Server-grade inference telemetry: Tokens/sec, Time-to-First-Token (TTFT), reasoning token split
 - Tag-delimited input suite parsing (<suite>, <task id="..." category="...">, <prompt>...</prompt>)
-- Tag-delimited CDATA-isolated output reports (.tags) & companion clean Markdown reports (.md)
+- Companion structured Markdown reports (.md) with performance scorecards and collapsible details
 - Multi-model batch selection & sequential execution in a single run
-- Prompt suite source file selector (default: UNCENSOR_ME.txt)
-- Blank system prompt injection ({"role": "system", "content": ""}) to neutralize LM Studio defaults
-- Thinking / reasoning mode toggles (enabled / disabled with proper token headroom management)
-- Clickable Textual TUI (benchmark_ui.py) + robust interactive CLI fallback
+- Blank/None/Custom system prompt injection to control LM Studio model presets
+- Robust interactive CLI with model auto-discovery
 """
 
 import os
@@ -167,26 +168,44 @@ def parse_prompts_file(filepath: str) -> List[Dict[str, Any]]:
 
 def extract_reasoning_and_output(response_json: dict) -> Tuple[str, str]:
     """
-    Extracts reasoning/thinking text and the final response across different model families:
-    - Gemma-4 / Gemma-2: <|channel>thought...<channel|>, <start_of_thought>...<end_of_thought>
-    - Qwen-3.5 / DeepSeek: <think>...</think>
-    - Llama / Custom: <thought>, [THINK], reasoning_content field
+    Extracts reasoning/thinking text and the final response.
+    First checks native LM Studio /api/v1/chat structured 'output' array:
+      [{"type": "reasoning", "content": "..."}, {"type": "message", "content": "..."}]
+    Falls back to legacy OpenAI 'choices' format and delimiter regexes if needed.
     """
+    # 1. Native LM Studio /api/v1/chat structured output
+    output_items = response_json.get("output")
+    if isinstance(output_items, list):
+        reasoning_blocks = []
+        message_blocks = []
+        for item in output_items:
+            itype = item.get("type")
+            content = item.get("content", "")
+            if itype == "reasoning":
+                reasoning_blocks.append(content.strip())
+            elif itype == "message":
+                message_blocks.append(content.strip())
+
+        thinking_text = "\n\n---\n\n".join(b for b in reasoning_blocks if b)
+        response_text = "\n\n".join(b for b in message_blocks if b)
+        return thinking_text, response_text
+
+    # 2. Legacy OpenAI-compatible /v1/chat/completions fallback
     choices = response_json.get("choices", [])
     if not choices:
-        return "", response_json.get("error", {}).get("message", "No response choices returned.")
+        return "", response_json.get("error", {}).get("message", "No response output returned.")
 
     message = choices[0].get("message", {})
     raw_content = message.get("content", "") or ""
     
-    # 1. Direct reasoning fields
+    # Direct reasoning fields
     api_reasoning = message.get("reasoning_content") or message.get("thought") or message.get("reasoning") or ""
     
     thinking_segments = []
     if api_reasoning.strip():
         thinking_segments.append(api_reasoning.strip())
 
-    # 2. Tag-based reasoning delimiters
+    # Tag-based reasoning delimiters
     thinking_patterns = [
         r"<\|channel\>thought\s*(.*?)(?:<channel\|>|<\|channel\>|$)",
         r"<\|channel\|>thought\s*(.*?)(?:<\|channel\|>|$)",
@@ -222,48 +241,50 @@ def execute_single_task(
     model_id: str,
     task_item: Dict[str, Any],
     enable_thinking: bool = True,
+    reasoning_mode: Optional[str] = None,
     system_prompt_mode: str = "blank",
     custom_system_prompt: str = "",
     temperature: Optional[float] = None,
     max_tokens: Optional[int] = None,
-    ttl: Optional[int] = None
+    ttl: Optional[int] = None,
+    store: bool = False
 ) -> Dict[str, Any]:
-    """Executes a single benchmark task against LM Studio API with no request timeout."""
-    chat_url = f"{base_url.rstrip('/')}/v1/chat/completions"
+    """Executes a single benchmark task against LM Studio native POST /api/v1/chat endpoint with no request timeout."""
+    chat_url = f"{base_url.rstrip('/')}/api/v1/chat"
     p_text = task_item["prompt"]
-    
-    messages = []
-    
-    # 1. System Prompt Injection
-    if system_prompt_mode == "blank":
-        messages.append({"role": "system", "content": ""})
-    elif system_prompt_mode == "custom" and custom_system_prompt:
-        messages.append({"role": "system", "content": custom_system_prompt})
-    # If "none", omit system message entirely to preserve model-configured LM Studio defaults
 
-    messages.append({"role": "user", "content": p_text})
-
-    # 2. Clean OpenAI API Payload (preserves LM Studio presets if not explicitly overridden)
-    payload = {
+    # Native LM Studio Payload
+    payload: Dict[str, Any] = {
         "model": model_id,
-        "messages": messages,
-        "stream": False,
+        "input": p_text,
+        "store": store,
     }
 
+    # 1. System Prompt Injection
+    if system_prompt_mode == "blank":
+        payload["system_prompt"] = ""
+    elif system_prompt_mode == "custom" and custom_system_prompt:
+        payload["system_prompt"] = custom_system_prompt
+    # If "none", omit system_prompt entirely to preserve model-configured LM Studio defaults
+
+    # 2. Native Reasoning Control
+    if reasoning_mode:
+        payload["reasoning"] = reasoning_mode
+    elif enable_thinking is not None:
+        payload["reasoning"] = "on" if enable_thinking else "off"
+
+    # 3. Native Generation Parameters
     if temperature is not None:
         payload["temperature"] = temperature
     if max_tokens is not None:
-        payload["max_tokens"] = max_tokens
-    if ttl is not None:
-        payload["ttl"] = ttl
-    if enable_thinking is not None:
-        payload["chat_template_kwargs"] = {"enable_thinking": bool(enable_thinking)}
+        payload["max_output_tokens"] = max_tokens
 
     req_start = time.time()
     error_msg = None
     thinking_text = ""
     response_text = ""
-    usage = {}
+    stats: Dict[str, Any] = {}
+    usage: Dict[str, Any] = {}
     finish_reason = "stop"
     status = "SUCCESS"
 
@@ -271,14 +292,26 @@ def execute_single_task(
         # timeout=None waits indefinitely for the model to complete without artificial cutoff
         res_json = query_api(chat_url, payload=payload, timeout=None)
         req_duration = time.time() - req_start
-        
+
         thinking_text, response_text = extract_reasoning_and_output(res_json)
-        usage = res_json.get("usage", {})
-        
-        choices = res_json.get("choices", [])
-        if choices:
-            finish_reason = choices[0].get("finish_reason", "stop")
-            
+        stats = res_json.get("stats", {})
+
+        # Map stats into usage dict for backward-compatibility with reports
+        usage = {
+            "prompt_tokens": stats.get("input_tokens", 0),
+            "completion_tokens": stats.get("total_output_tokens", 0),
+            "total_tokens": stats.get("input_tokens", 0) + stats.get("total_output_tokens", 0),
+            "reasoning_tokens": stats.get("reasoning_output_tokens", 0),
+            "tokens_per_second": stats.get("tokens_per_second"),
+            "time_to_first_token_seconds": stats.get("time_to_first_token_seconds"),
+        }
+
+        # If max_output_tokens was hit, finish_reason = "length"
+        if max_tokens is not None and stats.get("total_output_tokens", 0) >= max_tokens:
+            finish_reason = "length"
+        else:
+            finish_reason = "stop"
+
     except Exception as e:
         req_duration = time.time() - req_start
         status = "FAILED"
@@ -297,6 +330,7 @@ def execute_single_task(
         "thinking": thinking_text,
         "response": response_text,
         "usage": usage,
+        "stats": stats,
         "error": error_msg
     }
 
@@ -327,16 +361,19 @@ def generate_markdown_report(
         "",
         "## Summary Scorecard",
         "",
-        "| Task # | Category | Status | Latency (s) | Thinking (chars) | Response (chars) | Total Tokens | Finish Reason |",
-        "|:---|:---|:---|:---|:---|:---|:---|:---|",
+        "| Task # | Category | Status | Latency (s) | Tok/s | TTFT (s) | Thinking (chars) | Response (chars) | Out Tokens | Finish |",
+        "|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|",
     ]
 
     for r in results:
         status_icon = "✅ Success" if r["status"] == "SUCCESS" else "❌ Failed"
-        total_tokens = r["usage"].get("total_tokens", "-") if r["usage"] else "-"
+        stats = r.get("stats") or {}
+        tps = f"{stats.get('tokens_per_second', 0.0):.1f}" if "tokens_per_second" in stats else "-"
+        ttft = f"{stats.get('time_to_first_token_seconds', 0.0):.3f}" if "time_to_first_token_seconds" in stats else "-"
+        out_tokens = stats.get("total_output_tokens", r.get("usage", {}).get("completion_tokens", "-"))
         lines.append(
             f"| {r['index']} | {r['category']} | {status_icon} | {r['duration']:.2f} | "
-            f"{len(r['thinking']):,} | {len(r['response']):,} | {total_tokens} | `{r.get('finish_reason', 'stop')}` |"
+            f"{tps} | {ttft} | {len(r['thinking']):,} | {len(r['response']):,} | {out_tokens} | `{r.get('finish_reason', 'stop')}` |"
         )
 
     lines.append("")
@@ -348,7 +385,20 @@ def generate_markdown_report(
     for r in results:
         lines.append(f"### Task {r['index']}: {r['category']}")
         lines.append("")
-        lines.append(f"**Execution Time:** {r['duration']:.2f}s | **Status:** `{r['status']}` | **Finish Reason:** `{r.get('finish_reason', 'stop')}`")
+        
+        stats = r.get("stats") or {}
+        perf_bits = [
+            f"**Execution Time:** {r['duration']:.2f}s",
+            f"**Status:** `{r['status']}`",
+            f"**Finish Reason:** `{r.get('finish_reason', 'stop')}`"
+        ]
+        if "tokens_per_second" in stats:
+            perf_bits.append(f"**Speed:** {stats['tokens_per_second']:.2f} tok/s")
+        if "time_to_first_token_seconds" in stats:
+            perf_bits.append(f"**TTFT:** {stats['time_to_first_token_seconds']:.3f}s")
+        if "reasoning_output_tokens" in stats:
+            perf_bits.append(f"**Tokens:** {stats.get('total_output_tokens', 0)} (Reasoning: {stats.get('reasoning_output_tokens', 0)}, Input: {stats.get('input_tokens', 0)})")
+        lines.append(" | ".join(perf_bits))
         lines.append("")
         
         # User Prompt (Collapsible)
@@ -499,6 +549,7 @@ def run_batch_benchmark(
     model_ids: List[str],
     prompt_file: str,
     enable_thinking: bool = True,
+    reasoning_mode: Optional[str] = None,
     system_prompt_mode: str = "blank",
     custom_system_prompt: str = "",
     temperature: Optional[float] = None,
@@ -518,18 +569,19 @@ def run_batch_benchmark(
     temp_disp = f"{temperature}" if temperature is not None else "MODEL_DEFAULT"
     tokens_disp = f"{max_tokens}" if max_tokens is not None else "MODEL_DEFAULT"
     ttl_disp = f"{ttl}s" if ttl is not None else "SERVER_DEFAULT"
+    effective_reasoning = reasoning_mode or ("on" if enable_thinking else "off")
 
     print("\n" + "=" * 65)
-    print("  LM STUDIO BATCH BENCHMARK RUNNER")
+    print("  LM STUDIO BATCH BENCHMARK RUNNER (NATIVE ENGINE)")
     print("=" * 65)
-    print(f"[*] Total Models       : {len(model_ids)} ({', '.join(model_ids)})")
-    print(f"[*] Prompt Suite       : {prompt_file} ({len(tasks)} tasks)")
-    print(f"[*] Output Directory   : {out_path.resolve()}")
-    print(f"[*] Thinking Mode      : {'ENABLED' if enable_thinking else 'DISABLED'}")
-    print(f"[*] System Prompt Mode : {system_prompt_mode.upper()}")
-    print(f"[*] Temp / Max Tokens  : {temp_disp} | {tokens_disp}")
-    print(f"[*] JIT Model TTL      : {ttl_disp}")
-    print(f"[*] Endpoint           : {base_url}/v1/chat/completions")
+    print(f"[*] Total Models        : {len(model_ids)} ({', '.join(model_ids)})")
+    print(f"[*] Prompt Suite        : {prompt_file} ({len(tasks)} tasks)")
+    print(f"[*] Output Directory    : {out_path.resolve()}")
+    print(f"[*] Native Reasoning    : {effective_reasoning.upper()}")
+    print(f"[*] System Prompt Mode  : {system_prompt_mode.upper()}")
+    print(f"[*] Temp / Max Tokens   : {temp_disp} | {tokens_disp}")
+    print(f"[*] Endpoint            : {base_url}/api/v1/chat (Native LM Studio Engine)")
+    print(f"[*] History Storage     : STATELESS (store: false)")
     print("=" * 65)
 
     batch_start_time = time.time()
@@ -551,20 +603,25 @@ def run_batch_benchmark(
                 model_id=model_id,
                 task_item=task,
                 enable_thinking=enable_thinking,
+                reasoning_mode=reasoning_mode,
                 system_prompt_mode=system_prompt_mode,
                 custom_system_prompt=custom_system_prompt,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                ttl=ttl
+                ttl=ttl,
+                store=False
             )
             model_task_results.append(task_res)
 
             status_icon = "✓" if task_res["status"] == "SUCCESS" else "✗"
+            tps_str = f" | {task_res['stats']['tokens_per_second']:.1f} tok/s" if task_res.get("stats", {}).get("tokens_per_second") else ""
+            ttft_str = f" | TTFT: {task_res['stats']['time_to_first_token_seconds']:.3f}s" if task_res.get("stats", {}).get("time_to_first_token_seconds") else ""
             print(
                 f"    {status_icon} Completed in {task_res['duration']:.2f}s "
                 f"| Thinking: {len(task_res['thinking']):,} chars "
                 f"| Response: {len(task_res['response']):,} chars "
                 f"| Finish: {task_res.get('finish_reason', 'stop')}"
+                f"{tps_str}{ttft_str}"
             )
 
         model_duration = time.time() - model_start_time
@@ -623,6 +680,11 @@ def main():
         help="Interactively select prompt suite file from available files"
     )
     parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Quick debug mode: automatically use suite_quick_test.txt"
+    )
+    parser.add_argument(
         "--thinking",
         dest="thinking",
         action="store_true",
@@ -634,6 +696,12 @@ def main():
         dest="thinking",
         action="store_false",
         help="Disable model thinking / reasoning mode"
+    )
+    parser.add_argument(
+        "--reasoning", "-r",
+        choices=["off", "low", "medium", "high", "on"],
+        default=None,
+        help="LM Studio native reasoning level: 'off', 'low', 'medium', 'high', or 'on' (overrides --thinking / --no-thinking)"
     )
     parser.add_argument(
         "--system-prompt-mode", "-s",
@@ -691,7 +759,9 @@ def main():
         return
 
     # 1. Source File Selection
-    if args.select_file:
+    if args.debug:
+        prompt_file = "suite_quick_test.txt"
+    elif args.select_file:
         prompt_file = select_prompt_file_interactive(args.file)
     else:
         prompt_file = args.file
@@ -724,12 +794,21 @@ def main():
         print("[!] No models selected to benchmark.")
         return
 
-    # 3. Run Benchmark
+    # 3. Determine Reasoning Mode
+    if args.reasoning:
+        reasoning_mode = args.reasoning
+        enable_thinking = (args.reasoning != "off")
+    else:
+        reasoning_mode = "on" if args.thinking else "off"
+        enable_thinking = args.thinking
+
+    # 4. Run Benchmark
     run_batch_benchmark(
         base_url=args.url,
         model_ids=selected_models,
         prompt_file=prompt_file,
-        enable_thinking=args.thinking,
+        enable_thinking=enable_thinking,
+        reasoning_mode=reasoning_mode,
         system_prompt_mode=args.system_prompt_mode,
         custom_system_prompt=args.system_prompt,
         temperature=args.temperature,

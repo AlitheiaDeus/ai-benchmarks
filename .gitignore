@@ -29,3 +29,13 @@ desktop.ini
 AGENTS.md
 GEMINI.md
 
+# Local documentation memos & research notes
+memo_*.md
+
+# Local test & debug scratch files
+test_native_api.py
+suite_quick_test.txt
+*.log
+aggregated_model_turns.txt
+
+
